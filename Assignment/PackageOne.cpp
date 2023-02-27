@@ -2,8 +2,7 @@
 #include "Drawable.h"
 #include "Color.h"
 #include <cmath>
-#include <iostream>
-#include <format>
+#include <numbers>
 
 std::vector<float> Triangle::vertices() const {
 	return std::vector{
@@ -75,5 +74,59 @@ std::vector<Primitive> Cube::primitives() const {
 		Primitive{GL_TRIANGLE_STRIP, std::vector{
 			3u, 2u, 0u, 1u,	// bottom
 		}},
+	};
+}
+
+std::vector<float> Cone::vertices() const {
+	auto vertices = std::vector{
+		// base center
+		_center.x, _center.y, _center.z, srgb::CYAN[0], srgb::CYAN[1], srgb::CYAN[2], srgb::CYAN[3]
+	};
+
+	// Base circle
+	for (auto i = 0; i < SEGMENTS; ++i) {
+		const auto angle = static_cast<float>(i) * 2.0f * std::numbers::pi_v<float> / SEGMENTS;
+		const auto rotationX = _radius * std::cos(angle);
+		const auto rotationY = _radius * std::sin(angle);
+		const auto rot = glm::vec3{ rotationX, rotationY, 0.0f };
+		const auto dir = normalize(cross(_up, rot));
+		const auto point = _center + dir * _radius;
+		vertices.push_back(point.x);
+		vertices.push_back(point.y);
+		vertices.push_back(point.z);
+		vertices.push_back(srgb::PURPLE[0]);
+		vertices.push_back(srgb::PURPLE[1]);
+		vertices.push_back(srgb::PURPLE[2]);
+		vertices.push_back(srgb::PURPLE[3]);
+	}
+
+	const auto top = _center + _up * _height;
+	vertices.push_back(top.x);
+	vertices.push_back(top.y);
+	vertices.push_back(top.z);
+	vertices.push_back(srgb::BLUE[0]);
+	vertices.push_back(srgb::BLUE[1]);
+	vertices.push_back(srgb::BLUE[2]);
+	vertices.push_back(srgb::BLUE[3]);
+
+	return vertices;
+}
+
+std::vector<Primitive> Cone::primitives() const {
+	auto circleIndices = std::vector{ 0u };
+	for (auto i = 0; i < SEGMENTS; ++i) {
+		circleIndices.push_back(static_cast<IndexType>(i + 1));
+	}
+	circleIndices.push_back(1u);
+
+	auto coneIndices = std::vector{ static_cast<IndexType>(SEGMENTS + 1) };
+	for (auto i = 0; i < SEGMENTS; ++i) {
+		coneIndices.push_back(static_cast<IndexType>(i + 1));
+	}
+	coneIndices.push_back(1u);
+
+	return std::vector{
+		Primitive{ GL_TRIANGLE_FAN, circleIndices },
+		Primitive{ GL_TRIANGLE_FAN, coneIndices }
 	};
 }

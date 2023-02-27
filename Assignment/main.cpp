@@ -27,13 +27,20 @@ int main() {
 	};
 
 	const auto cube = Cube{
-		glm::vec3{ 0.0f,  0.0f,  0.0f },
-		glm::vec3{ 0.0f,  1.0f,  1.0f },
-		glm::vec3{ 1.0f,  0.0f,  0.0f },
-		1.0f
+		glm::vec3{ 0.0f,  0.0f,  0.0f },	// center
+		glm::vec3{ 0.0f,  1.0f,  1.0f },	// up vector
+		glm::vec3{ 1.0f,  0.0f,  0.0f },	// corner vector
+		1.0f								// side length
 	};
 
-	const auto renderable = engine.loadMesh(cube);
+	const auto cone = Cone{
+		glm::vec3{ 0.0f, -0.5f,  0.0f },	// base center
+		0.5f,								// radius
+		1.5f,								// height
+		glm::vec3{ 0.0f,  1.0f,  0.5f }
+	};
+
+	const auto renderable = engine.loadMesh(cone);
 	context.loop([&] { engine.render(renderable); });
 
 	engine.destroy();

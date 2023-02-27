@@ -78,3 +78,35 @@ private:
 	const float _sideLength;
 };
 
+class Cone final : public BakedColorDrawable {
+public:
+	Cone(
+		const glm::vec3& center,
+		const float radius,
+		const float height,
+		const glm::vec3& up
+	) : _center{ center }, _radius{ radius }, _height{ height }, _up{ normalize(up) } {
+		if (height <= 0.0f) {
+			throw std::exception{ "The height of the cube is not positive\n" };
+		}
+
+		if (radius <= 0.0f) {
+			throw std::exception{ "The radius of the cube is not positive\n" };
+		}
+	}
+
+	[[nodiscard]] std::vector<float> vertices() const override;
+
+	[[nodiscard]] std::vector<Primitive> primitives() const override;
+
+private:
+	const glm::vec3 _center;
+
+	const float _radius;
+
+	const float _height;
+
+	const glm::vec3 _up;
+
+	static constexpr auto SEGMENTS = 100;
+};
