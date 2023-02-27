@@ -77,3 +77,4 @@ private:
 
 	const float _sideLength;
 };
+

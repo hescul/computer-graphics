@@ -86,9 +86,7 @@ Renderable Engine::loadMesh(const Drawable& drawable) {
 	_indexBuffers.push_back(ibo);
 
 	const auto renderable = static_cast<Renderable>(_meshes.size());
-	auto elements = createElements(primitives);
-
-	_meshes.emplace_back(vao, drawable.shader, std::move(elements));
+	_meshes.emplace_back(vao, drawable.shader, createElements(primitives));
 
 	return renderable;
 }
@@ -118,10 +116,10 @@ VertexBuffer Engine::createVertexBuffer(
 		const auto [size, normalized] = layout[idx];
 		glVertexAttribPointer(
 			idx, static_cast<GLint>(size), GL_FLOAT, !normalized, stride,
-			reinterpret_cast<void*>(offset)  // NOLINT(performance-no-int-to-ptr)
+			reinterpret_cast<void*>(offset * sizeof(GLfloat))  // NOLINT(performance-no-int-to-ptr)
 		);
 		glEnableVertexAttribArray(idx);
-		offset += static_cast<int>(size) * static_cast<int>(sizeof(float));
+		offset += static_cast<int>(size);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return vbo;
@@ -176,10 +174,11 @@ void Engine::render(const Renderable renderable) const {
 		glBindVertexArray(_meshes[renderable].vao);
 
 		const auto& elements = _meshes[renderable].elements;
-		std::ranges::for_each(elements.begin(), elements.end(), [](const auto& element) {
+		std::ranges::for_each(elements.begin(), elements.end(), [](const Element& element) {
+			const auto [topology, count, offset] = element;
 			glDrawElements(
-				element.topology, static_cast<GLsizei>(element.count),
-				GL_UNSIGNED_INT, reinterpret_cast<void*>(element.offset) // NOLINT(performance-no-int-to-ptr)
+				topology, static_cast<GLsizei>(count), GL_UNSIGNED_INT, 
+				reinterpret_cast<void*>(offset * sizeof(GLuint)) // NOLINT(performance-no-int-to-ptr)
 			);
 		});
 		
