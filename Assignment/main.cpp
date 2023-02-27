@@ -37,10 +37,15 @@ int main() {
 		glm::vec3{ 0.0f, -0.5f,  0.0f },	// base center
 		0.5f,								// radius
 		1.5f,								// height
-		glm::vec3{ 0.0f,  1.0f,  0.5f }
+		glm::vec3{ 0.0f,  1.0f,  0.5f }		// up vector
 	};
 
-	const auto renderable = engine.loadMesh(cone);
+	const auto sphere = Sphere{
+		glm::vec3{ 0.0f,  0.0f,  0.0f },	// center
+		0.5f								// radius
+	};
+
+	const auto renderable = engine.loadMesh(sphere);
 	context.loop([&] { engine.render(renderable); });
 
 	engine.destroy();

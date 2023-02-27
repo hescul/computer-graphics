@@ -1,7 +1,6 @@
 #include "Context.h"
 #include <glad/glad.h>
 #include <iostream>
-#include <algorithm>
 
 Context::Context(const std::string_view name, const int width, const int height) {
 	// glfw: initialize and configure
@@ -87,11 +86,9 @@ void Context::loop(const std::function<void()>& onRender) const {
 }
 
 void Context::processInputs() const {
-	std::ranges::for_each(_keyBindings.begin(), _keyBindings.end(),
-		[&](const std::pair<Key, std::function<void()>>& element) {
-			if (const auto& [key, callback] = element; glfwGetKey(_window, static_cast<int>(key)) == GLFW_PRESS) {
-				callback();
-			}
+	for (const auto& binding : _keyBindings) {
+		if (const auto & [key, callback] = binding; glfwGetKey(_window, static_cast<int>(key)) == GLFW_PRESS) {
+			callback();
 		}
-	);
+	}
 }

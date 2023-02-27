@@ -86,9 +86,7 @@ std::vector<float> Cone::vertices() const {
 	// Base circle
 	for (auto i = 0; i < SEGMENTS; ++i) {
 		const auto angle = static_cast<float>(i) * 2.0f * std::numbers::pi_v<float> / SEGMENTS;
-		const auto rotationX = _radius * std::cos(angle);
-		const auto rotationY = _radius * std::sin(angle);
-		const auto rot = glm::vec3{ rotationX, rotationY, 0.0f };
+		const auto rot = glm::vec3{ std::cos(angle), std::sin(angle), 0.0f };
 		const auto dir = normalize(cross(_up, rot));
 		const auto point = _center + dir * _radius;
 		vertices.push_back(point.x);
@@ -129,4 +127,83 @@ std::vector<Primitive> Cone::primitives() const {
 		Primitive{ GL_TRIANGLE_FAN, circleIndices },
 		Primitive{ GL_TRIANGLE_FAN, coneIndices }
 	};
+}
+
+std::vector<float> Sphere::vertices() const {
+	auto vertices = std::vector<float>{};
+
+	const auto top = _center + glm::vec3{ 0.0f, 1.0f, 0.0f } *_radius;
+	vertices.push_back(top.x);
+	vertices.push_back(top.y);
+	vertices.push_back(top.z);
+	vertices.push_back(srgb::YELLOW[0]);
+	vertices.push_back(srgb::YELLOW[1]);
+	vertices.push_back(srgb::YELLOW[2]);
+	vertices.push_back(srgb::YELLOW[3]);
+
+	const auto bot = _center + glm::vec3{ 0.0f, -1.0f, 0.0f } *_radius;
+	vertices.push_back(bot.x);
+	vertices.push_back(bot.y);
+	vertices.push_back(bot.z);
+	vertices.push_back(srgb::RED[0]);
+	vertices.push_back(srgb::RED[1]);
+	vertices.push_back(srgb::RED[2]);
+	vertices.push_back(srgb::RED[3]);
+
+	for (auto i = 1; i < DIVISIONS; ++i) {
+		const auto theta = static_cast<float>(i) * std::numbers::pi_v<float> / DIVISIONS;
+		for (auto j = 0; j < SEGMENTS; ++j) {
+			const auto phi = static_cast<float>(j) * 2.0f * std::numbers::pi_v<float> / SEGMENTS;
+
+			const auto diX = std::sin(theta) * std::cos(phi);
+			const auto diY = std::cos(theta);
+			const auto diZ = std::sin(theta) * std::sin(phi);
+
+			const auto dir = normalize(glm::vec3{ diX, diY, diZ });
+			const auto point = _center + dir * _radius;
+
+			vertices.push_back(point.x);
+			vertices.push_back(point.y);
+			vertices.push_back(point.z);
+			vertices.push_back(srgb::MAGENTA[0]);
+			vertices.push_back(srgb::MAGENTA[1]);
+			vertices.push_back(srgb::MAGENTA[2]);
+			vertices.push_back(srgb::MAGENTA[3]);
+		}
+	}
+
+	return vertices;
+}
+
+std::vector<Primitive> Sphere::primitives() const {
+	auto primitives = std::vector<Primitive>{};
+
+	for (auto i = 0; i < DIVISIONS - 2; ++i) {
+		auto indices = std::vector<IndexType>{};
+		for (auto j = 0; j < SEGMENTS; ++j) {
+			indices.push_back(i * SEGMENTS + j + 2);
+			indices.push_back((i + 1) * SEGMENTS + j + 2);
+		}
+		indices.push_back(i * SEGMENTS + 2);
+		indices.push_back((i + 1) * SEGMENTS + 2);
+
+		primitives.emplace_back(GL_TRIANGLE_STRIP, indices);
+	}
+
+	auto topIndices = std::vector{ 0u };
+	for (auto i = 0; i < SEGMENTS; ++i) {
+		topIndices.push_back(i + 2);
+	}
+	topIndices.push_back(2u);
+	primitives.emplace_back(GL_TRIANGLE_FAN, topIndices);
+
+	auto botIndices = std::vector{ 1u };
+	constexpr auto lastDiv = DIVISIONS - 2;
+	for (auto i = 0; i < SEGMENTS; ++i) {
+		botIndices.push_back(lastDiv * SEGMENTS + i + 2);
+	}
+	botIndices.push_back(lastDiv * SEGMENTS + 2);
+	primitives.emplace_back(GL_TRIANGLE_FAN, botIndices);
+
+	return primitives;
 }

@@ -87,11 +87,11 @@ public:
 		const glm::vec3& up
 	) : _center{ center }, _radius{ radius }, _height{ height }, _up{ normalize(up) } {
 		if (height <= 0.0f) {
-			throw std::exception{ "The height of the cube is not positive\n" };
+			throw std::exception{ "The height of the cone is not positive\n" };
 		}
 
 		if (radius <= 0.0f) {
-			throw std::exception{ "The radius of the cube is not positive\n" };
+			throw std::exception{ "The radius of the cone is not positive\n" };
 		}
 	}
 
@@ -109,4 +109,26 @@ private:
 	const glm::vec3 _up;
 
 	static constexpr auto SEGMENTS = 100;
+};
+
+class Sphere final : public BakedColorDrawable {
+public:
+	Sphere(const glm::vec3& center, const float radius) : _center{ center }, _radius{ radius } {
+		if (radius <= 0.0f) {
+			throw std::exception{ "The radius of the sphere is not positive\n" };
+		}
+	}
+
+	[[nodiscard]] std::vector<float> vertices() const override;
+
+	[[nodiscard]] std::vector<Primitive> primitives() const override;
+
+private:
+	const glm::vec3 _center;
+
+	const float _radius;
+
+	static constexpr auto SEGMENTS = 50;
+
+	static constexpr auto DIVISIONS = 20;
 };
