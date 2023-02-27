@@ -50,16 +50,30 @@ private:
 class Cube final : public BakedColorDrawable {
 public:
 	Cube(
-		const glm::vec3& baseCenter,
-		const glm::vec3& baseCorner
-	) : _baseCenter{ baseCenter }, _baseCorner{ baseCorner } {}
+		const glm::vec3& center,
+		const glm::vec3& upDir,
+		const glm::vec3& corDir,
+		const float sideLength
+	) : _center{ center }, _upDir{ normalize(upDir) }, _corDir{ normalize(corDir) }, _sideLength{ sideLength } {
+		if (dot(upDir, corDir) != 0.0f) {
+			throw std::exception{ "The up and corner directions of the cube are not perpendicular\n" };
+		}
+
+		if (sideLength <= 0.0f) {
+			throw std::exception{ "The side length of the cube is not positive\n" };
+		}
+	}
 
 	[[nodiscard]] std::vector<float> vertices() const override;
 
 	[[nodiscard]] std::vector<Primitive> primitives() const override;
 
 private:
-	const glm::vec3 _baseCenter;
+	const glm::vec3 _center;
 
-	const glm::vec3 _baseCorner;
+	const glm::vec3 _upDir;
+
+	const glm::vec3 _corDir;
+
+	const float _sideLength;
 };

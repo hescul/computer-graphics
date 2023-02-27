@@ -18,7 +18,7 @@ public:
 	Drawable(const Drawable& other) = default;
 	Drawable& operator=(const Drawable& other) = delete;
 	Drawable(Drawable&& other) noexcept = default;
-	Drawable& operator=(Drawable&& other) = delete;
+	Drawable& operator=(Drawable&& other) noexcept = delete;
 
 	const GLuint shader;
 	[[nodiscard]] virtual std::vector<float> vertices() const = 0;

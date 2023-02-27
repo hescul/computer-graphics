@@ -86,7 +86,9 @@ Renderable Engine::loadMesh(const Drawable& drawable) {
 	_indexBuffers.push_back(ibo);
 
 	const auto renderable = static_cast<Renderable>(_meshes.size());
-	_meshes.push_back(Mesh{ vao, drawable.shader, createElements(primitives) });
+	auto elements = createElements(primitives);
+
+	_meshes.emplace_back(vao, drawable.shader, std::move(elements));
 
 	return renderable;
 }
@@ -107,7 +109,7 @@ VertexBuffer Engine::createVertexBuffer(
 		_dataVertices.back().get(), GL_STATIC_DRAW
 	);
 	auto stride = 0;
-	for (const auto& [size, normalized] : layout) {
+	for (const auto [size, normalized] : layout) {
 		stride += static_cast<int>(size);
 	}
 	stride *= sizeof(float);
@@ -157,8 +159,7 @@ std::vector<Element> Engine::createElements(const std::vector<Primitive>& primit
 	auto offset = 0;
 
 	std::ranges::for_each(primitives.begin(), primitives.end(), [&](const Primitive& primitive) {
-		const auto element = Element{ primitive.topology, primitive.indices.size(), offset };
-		elements.push_back(element);
+		elements.emplace_back(primitive.topology, primitive.indices.size(), offset);
 		offset += static_cast<int>(primitive.indices.size());
 	});
 
@@ -175,11 +176,10 @@ void Engine::render(const Renderable renderable) const {
 		glBindVertexArray(_meshes[renderable].vao);
 
 		const auto& elements = _meshes[renderable].elements;
-		std::ranges::for_each(elements.begin(), elements.end(), [](const Element& element) {
-			const auto [topology, count, offset] = element;
+		std::ranges::for_each(elements.begin(), elements.end(), [](const auto& element) {
 			glDrawElements(
-				topology, static_cast<GLsizei>(count), 
-				GL_UNSIGNED_INT, reinterpret_cast<void*>(offset) // NOLINT(performance-no-int-to-ptr)
+				element.topology, static_cast<GLsizei>(element.count),
+				GL_UNSIGNED_INT, reinterpret_cast<void*>(element.offset) // NOLINT(performance-no-int-to-ptr)
 			);
 		});
 		
