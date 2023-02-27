@@ -30,3 +30,32 @@
 *.exe
 *.out
 *.app
+
+# Visual Studio files
+*.obj
+*.pdb
+*.ilk
+*.pch
+*.suo
+*.exp
+*.dll
+*.aps
+*.lib
+*.idb
+*.pdb
+*.ipch
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.VC.opendb
+*.VC.opendb
+.vs/
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+build/
+install/
+x64/
