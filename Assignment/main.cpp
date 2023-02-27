@@ -45,7 +45,7 @@ int main() {
 		0.5f								// radius
 	};
 
-	const auto renderable = engine.loadMesh(sphere);
+	const auto renderable = engine.loadMesh(cube);
 	context.loop([&] { engine.render(renderable); });
 
 	engine.destroy();

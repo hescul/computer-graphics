@@ -44,6 +44,7 @@ Context::Context(const std::string_view name, const int width, const int height)
 		}
 	);
 
+	glEnable(GL_DEPTH_TEST);
 	glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(_currentMode));
 }
 
