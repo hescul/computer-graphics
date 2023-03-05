@@ -5,6 +5,10 @@
 #include <fstream>
 #include <stb_image.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Shader.h"
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -12,8 +16,8 @@ void processInput(GLFWwindow* window);
 void debugInfo();
 
 // settings
-constexpr unsigned int SCR_WIDTH = 800;
-constexpr unsigned int SCR_HEIGHT = 600;
+constexpr auto SCR_WIDTH = 800;
+constexpr auto SCR_HEIGHT = 600;
 
 int main()
 {
@@ -48,7 +52,10 @@ int main()
         return -1;
     }
 
-    // debugInfo();
+#ifndef NDEBUG
+    debugInfo();
+#endif
+
 
     // build and compile our shader program
     // ------------------------------------
@@ -57,11 +64,47 @@ int main()
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     constexpr float vertices[] = {
-        // positions          // colors           // texture coords
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
     constexpr unsigned int indices[] = {
         0, 1, 3, // first triangle
@@ -71,6 +114,19 @@ int main()
     // Retrieving the texture color using texture coordinates is called sampling.
     // Texture sampling has a loose interpretation and can be done in many different ways.
     // It is thus our job to tell OpenGL how it should sample its textures.
+
+    const glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f,  0.0f,  0.0f),
+        glm::vec3(2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),
+        glm::vec3(1.5f,  2.0f, -2.5f),
+        glm::vec3(1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
 
     unsigned int vbo, vao, ebo;
     glGenVertexArrays(1, &vao);
@@ -87,22 +143,16 @@ int main()
 
     // position attribute
     glVertexAttribPointer(
-        0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
+        0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 
         reinterpret_cast<void*>(0)
     );
     glEnableVertexAttribArray(0);
-    // color attribute
+    // texture attribute
     glVertexAttribPointer(
-        1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
+        1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 
         reinterpret_cast<void*>(3 * sizeof(float)) // NOLINT(performance-no-int-to-ptr)
     );
     glEnableVertexAttribArray(1);
-    // texture attribute
-    glVertexAttribPointer(
-        2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
-        reinterpret_cast<void*>(6 * sizeof(float)) // NOLINT(performance-no-int-to-ptr)
-    );
-    glEnableVertexAttribArray(2);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -113,10 +163,6 @@ int main()
     // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
     // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
-
-
-    // uncomment this call to draw in wireframe polygons.
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 
     // texture
@@ -187,6 +233,25 @@ int main()
     shader.setInt("texture1", 0);
     shader.setInt("texture2", 1); // or with shader class
 
+    // transformation
+    // --------------
+    // model matrix
+    // auto model = glm::mat4(1.0f);
+    // model = rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    // view matrix
+    auto view = glm::mat4(1.0f);
+    // note that we're translating the scene in the reverse direction of where we want to move
+    view = translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+    // projection matrix
+    constexpr auto ratio = static_cast<float>(SCR_WIDTH) / SCR_HEIGHT;
+    const auto projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
+
+    // uncomment this call to draw in wireframe polygons.
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_DEPTH_TEST);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -198,7 +263,7 @@ int main()
         // render
         // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Now we update the uniform color. Uniforms are a useful tool for setting attributes that
         // may change every frame, or for interchanging data between application and shaders.
@@ -214,14 +279,39 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+        // rotate the cube over time
+        // const auto model = rotate(
+        //     glm::mat4(1.0f), static_cast<float>(glfwGetTime()) * glm::radians(50.0f), 
+        //     glm::vec3(0.5f, 1.0f, 0.0f)
+        // );
+
         // Be sure to activate the shader.
         shader.use();
+
+        // We send transformation matrices to the shader. This is usually done each frame since
+        // transformation matrices tend to change a lot.
+        // shader.setTransform("model", value_ptr(model));
+        shader.setTransform("view", value_ptr(view));
+        shader.setTransform("projection", value_ptr(projection));
 
         // As we only have a single VAO there's no need to bind it every time,
         // but we'll do so to keep things a bit more organized.
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, reinterpret_cast<void*>(0));
-        // glBindVertexArray(0); // no need to unbind it every time 
+        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, reinterpret_cast<void*>(0));
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // glBindVertexArray(0); // no need to unbind it every time
+        for (unsigned int i = 0; i < 10; i++) {
+            auto model = glm::mat4(1.0f);
+            model = translate(model, cubePositions[i]);
+            const float angle = 20.0f * static_cast<float>(i + 1);
+            model = rotate(
+                model, static_cast<float>(glfwGetTime()) * glm::radians(angle), 
+                glm::vec3(1.0f, 0.3f, 0.5f)
+            );
+            shader.setTransform("model", value_ptr(model));
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------

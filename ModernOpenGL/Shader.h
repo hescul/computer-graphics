@@ -15,6 +15,8 @@ public:
 	void setInt(std::string_view name, int value) const;
 	void setFloat(std::string_view name, float value) const;
 
+	void setTransform(std::string_view name, const float* value) const;
+
 private:
 	const GLuint _program;
 

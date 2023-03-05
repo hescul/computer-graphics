@@ -12,7 +12,7 @@ out vec4 FragColor;
 // When the types and the names are equal on both sides, OpenGL will 
 // link those variables together (done when linking a program object).
 // Fragment interpolation will be applied to all the fragment shader's input attributes.
-in vec4 vertColor;
+// in vec4 vertColor;
 in vec2 vertTexCoord;
 
 // Another way to pass data from our application on the CPU to the shaders on the GPU.

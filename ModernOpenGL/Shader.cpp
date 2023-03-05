@@ -89,6 +89,15 @@ void Shader::setFloat(const std::string_view name, const float value) const {
     glUniform1f(location, value);
 }
 
+void Shader::setTransform(const std::string_view name, const float* const value) const {
+    const auto location = glGetUniformLocation(_program, name.data());
+    // The second argument tells OpenGL how many matrices we'd like to send, which is 1.
+    // The third argument asks us if we want to transpose our matrix, that is to swap the columns and rows.
+    // OpenGL developers often use an internal matrix layout called column-major ordering which is the default
+    // matrix layout in GLM so there is no need to transpose the matrices.
+    glUniformMatrix4fv(location, 1, GL_FALSE, value);
+}
+
 void Shader::destroy() const {
     glDeleteProgram(_program);
 }
