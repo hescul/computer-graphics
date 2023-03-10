@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cmath>
 #include <stb_image.h>
 
 #include <glm/glm.hpp>
@@ -10,14 +11,29 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
+#include "Camera.h"
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+void mouseCallback(GLFWwindow* window, double xPos, double yPos);
+void scrollCallback(GLFWwindow* window, double offsetX, double offsetY);
 void processInput(GLFWwindow* window);
 void debugInfo();
 
 // settings
 constexpr auto SCR_WIDTH = 800;
 constexpr auto SCR_HEIGHT = 600;
+
+// camera
+auto camera = Camera();
+
+auto lastX = SCR_WIDTH  / 2.0f;
+auto lastY = SCR_HEIGHT / 2.0f;
+
+auto firstMouse = true;
+
+// delta time
+auto deltaTime = 0.0f;  // Time between current frame and last frame
+auto lastFrame = 0.0f;  // Time of last frame
 
 int main()
 {
@@ -43,11 +59,15 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    // Tell GLFW that it should hide the cursor and capture it. Capturing a cursor means that,
+    // once the application has focus, the mouse cursor stays within the center of the window.
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
-    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
-    {
+    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
@@ -240,13 +260,13 @@ int main()
     // model = rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     // view matrix
-    auto view = glm::mat4(1.0f);
+    // auto view = glm::mat4(1.0f);
     // note that we're translating the scene in the reverse direction of where we want to move
-    view = translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    // view = translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
     // projection matrix
-    constexpr auto ratio = static_cast<float>(SCR_WIDTH) / SCR_HEIGHT;
-    const auto projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
+    // constexpr auto ratio = static_cast<float>(SCR_WIDTH) / SCR_HEIGHT;
+    // const auto projection = glm::perspective(glm::radians(45.0f), ratio, 0.1f, 100.0f);
 
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -254,8 +274,13 @@ int main()
 
     // render loop
     // -----------
-    while (!glfwWindowShouldClose(window))
-    {
+    while (!glfwWindowShouldClose(window)) {
+        // update delta time
+        // -----------------
+        const auto currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         // input
         // -----
         processInput(window);
@@ -284,6 +309,17 @@ int main()
         //     glm::mat4(1.0f), static_cast<float>(glfwGetTime()) * glm::radians(50.0f), 
         //     glm::vec3(0.5f, 1.0f, 0.0f)
         // );
+
+        // rotate the scene over time
+        // constexpr auto radius = 10.0f;
+        // const auto camX = static_cast<float>(std::sin(glfwGetTime())) * radius;
+        // const auto camZ = static_cast<float>(std::cos(glfwGetTime())) * radius;
+
+        // requires a position, target and up vector respectively
+        const auto view = camera.viewMatrix();
+
+        constexpr auto ratio = static_cast<float>(SCR_WIDTH) / SCR_HEIGHT;
+        const auto projection = glm::perspective(glm::radians(camera.zoom), ratio, 0.1f, 100.0f);
 
         // Be sure to activate the shader.
         shader.use();
@@ -334,10 +370,29 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+void processInput(GLFWwindow* window) {
+    // const auto cameraSpeed = 2.5f * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
+    }
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        // move forward
+        camera.processKeyboard(Camera::Movement::FORWARD, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        // move backward
+        camera.processKeyboard(Camera::Movement::BACKWARD, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        // move left
+        camera.processKeyboard(Camera::Movement::LEFT, deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+	    // move right
+        camera.processKeyboard(Camera::Movement::RIGHT, deltaTime);
+    }
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -349,6 +404,26 @@ void framebufferSizeCallback(GLFWwindow* window, const int width, const int heig
     glViewport(0, 0, width, height);
 }
 
+
+void mouseCallback(GLFWwindow* window, const double xPos, const double yPos) {
+    if (firstMouse) { // initially set to true{
+        lastX = static_cast<float>(xPos);
+        lastY = static_cast<float>(yPos);
+        firstMouse = false;
+    }
+
+    const auto offsetX = static_cast<float>(xPos) - lastX;
+    // reversed since y-coordinates range from bottom to top
+    const auto offsetY = static_cast<float>(yPos) - lastY;
+    lastX = static_cast<float>(xPos);
+    lastY = static_cast<float>(yPos);
+
+    camera.processMouse(offsetX, offsetY);
+}
+
+void scrollCallback(GLFWwindow* window, const double offsetX, const double offsetY) {
+    camera.processScroll(static_cast<float>(offsetY));
+}
 
 void debugInfo() {
     int nrAttributes;
