@@ -1,10 +1,11 @@
-#version 330 core
+#version 440 core
 
 // declare all the input vertex attributes
 layout (location = 0) in vec3 aPos;   // the position variable has attribute position 0
 layout (location = 1) in vec4 aColor; // the color variable has attribute position 1
 
-out vec4 vertexColor; // specify a color output to the fragment shader
+// This color will be sent to the fragment shader.
+out vec4 vertexColor;
 
 void main() {
     // set the output of the vertex shader

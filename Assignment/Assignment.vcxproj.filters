@@ -16,6 +16,18 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{46e878d5-a99a-44c1-8063-eb86aa9ba831}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\drawable">
+      <UniqueIdentifier>{e0f9be55-e36a-419a-a467-3f552d262cd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\drawable">
+      <UniqueIdentifier>{8e90791d-0bfa-4501-8655-8e8651f8e634}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\assignment">
+      <UniqueIdentifier>{03938130-3ecc-4fc5-8069-7c67a0ee8ccb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\assignment">
+      <UniqueIdentifier>{8c093026-b43c-49de-91cb-8de9df2d8c68}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -27,10 +39,34 @@
     <ClCompile Include="Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PackageOne.cpp">
+    <ClCompile Include="Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Drawable.cpp">
+    <ClCompile Include="Scene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drawable\Drawable.cpp">
+      <Filter>Source Files\drawable</Filter>
+    </ClCompile>
+    <ClCompile Include="assignment\PackageOne.cpp">
+      <Filter>Source Files\assignment</Filter>
+    </ClCompile>
+    <ClCompile Include="View.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderableManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EntityManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,16 +80,40 @@
     <ClInclude Include="Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Drawable.h">
+    <ClInclude Include="Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Vertex.h">
+    <ClInclude Include="Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PackageOne.h">
+    <ClInclude Include="Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Color.h">
+    <ClInclude Include="drawable\Color.h">
+      <Filter>Header Files\drawable</Filter>
+    </ClInclude>
+    <ClInclude Include="drawable\Drawable.h">
+      <Filter>Header Files\drawable</Filter>
+    </ClInclude>
+    <ClInclude Include="drawable\Vertex.h">
+      <Filter>Header Files\drawable</Filter>
+    </ClInclude>
+    <ClInclude Include="assignment\PackageOne.h">
+      <Filter>Header Files\assignment</Filter>
+    </ClInclude>
+    <ClInclude Include="View.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderableManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EntityManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -62,6 +122,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\shader.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\baked.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\baked.vert">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

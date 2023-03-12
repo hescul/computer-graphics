@@ -1,8 +1,33 @@
-#include "Context.h"
 #include <glad/glad.h>
 #include <iostream>
+#include <functional>
+#include <chrono>
 
-Context::Context(const std::string_view name, const int width, const int height) {
+#include "Context.h"
+
+static std::vector<std::function<void(int, int)>> mFramebufferCallbacks{};
+static std::function<void(float)> mMouseScrollCallback{ [](auto) {} };
+static std::function<void(float, float)> mMouseDragPerpetualCallback{ [](auto, auto) {} };
+
+static GLFWwindow* mWindow = nullptr;
+static bool mDragging = false;
+static float mLastX = 0.0f;
+static float mLastY = 0.0f;
+
+std::unique_ptr<Context> Context::Factory::operator()(
+	const std::string_view name, 
+	const int width, const int height
+	) const {
+	return std::unique_ptr<Context>(new Context{ name, width, height });
+}
+
+std::unique_ptr<Context> Context::create(const std::string_view name, const int width, const int height) {
+	static constexpr auto FACTORY = Factory{};
+	return FACTORY(name, width, height);
+}
+
+Context::Context(const std::string_view name, const int width, const int height)
+	: _initialRatio{ static_cast<float>(width) / static_cast<float>(height)} {
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
@@ -34,61 +59,103 @@ Context::Context(const std::string_view name, const int width, const int height)
 		throw std::exception("Failed to initialize GLAD\n");
 	}
 
-	// viewport should be adjusted when the window is resized
-	// callbacks should be registered before the rendering loop
-	glfwSetFramebufferSizeCallback(
-		_window, [](GLFWwindow* _, const int w, const int h) {
-			// make sure the viewport matches the new window dimensions
-			// width and height will be significantly larger than specified on retina displays
-			glViewport(0, 0, w, h);
-		}
-	);
+	mWindow = _window;
 
-	glEnable(GL_DEPTH_TEST);
-	glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(_currentMode));
+	glfwSetMouseButtonCallback(_window, [](auto _, const auto button, const auto action, auto mods) {
+		if (button == GLFW_MOUSE_BUTTON_LEFT) {
+			if (action == GLFW_PRESS) {
+				double xPos, yPos;
+				glfwGetCursorPos(mWindow, &xPos, &yPos);
+				mLastX = static_cast<float>(xPos);
+				mLastY = static_cast<float>(yPos);
+				mDragging = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				mDragging = false;
+			}
+		}
+	});
 }
 
 void Context::setClose(const bool close) const {
 	glfwSetWindowShouldClose(_window, close);
 }
 
-void Context::togglePolygonMode() {
-	if (_currentMode == PolygonMode::FILL) {
-		glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(PolygonMode::LINE));
-		_currentMode = PolygonMode::LINE;
-	} else {
-		glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(PolygonMode::FILL));
-		_currentMode = PolygonMode::FILL;
-	}
-}
-
-void Context::setPolygonMode(const PolygonMode mode) {
-	_currentMode = mode;
-	glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(_currentMode));
-}
-
-
-
-void Context::terminate() {
+Context::~Context() {
 	glfwTerminate();
 }
+
 
 void Context::bindKey(const Key key, const std::function<void()>& callback) {
 	_keyBindings[key] = callback;
 }
 
-void Context::loop(const std::function<void()>& onRender) const {
+void Context::setMouseScrollCallback(const std::function<void(float)>& callback) const {
+	mMouseScrollCallback = callback;
+	glfwSetScrollCallback(_window, [](auto _, const auto offsetX, const auto offsetY) {
+		mMouseScrollCallback(static_cast<float>(offsetY));
+	});
+}
+
+void Context::setMouseDragPerpetualCallback(const std::function<void(float, float)>& callback) const {
+	mMouseDragPerpetualCallback = callback;
+	glfwSetCursorPosCallback(_window, [](auto _, const auto xPos, const auto yPos) {
+		if (mDragging) {
+			const auto offsetX = static_cast<float>(xPos) - mLastX;
+			const auto offsetY = static_cast<float>(yPos) - mLastY;
+			mLastX = static_cast<float>(xPos);
+			mLastY = static_cast<float>(yPos);
+
+			mMouseDragPerpetualCallback(offsetX, offsetY);
+		}
+	});
+}
+
+
+void Context::loop(const std::function<void()>& onFrame) {
 	while (!glfwWindowShouldClose(_window)) {
+		static const auto START_POINT = std::chrono::high_resolution_clock::now();
+		const auto currentPoint = std::chrono::high_resolution_clock::now();
+		_currentTime = std::chrono::duration<float, std::chrono::seconds::period>(currentPoint - START_POINT).count();
+		_deltaTime = _currentTime - _lastTime;
+		_lastTime = _currentTime;
+
 		processInputs();
-		onRender();
+
+		onFrame();
+
 		glfwPollEvents();
 		glfwSwapBuffers(_window);
 	}
 }
 
+float Context::getCurrentTime() const {
+	return _currentTime;
+}
+
+float Context::getDeltaTime() const {
+	return _deltaTime;
+}
+
+void Context::registerFramebufferCallback(const std::function<void(int, int)>& callback) const {
+	mFramebufferCallbacks.push_back(callback);
+	glfwSetFramebufferSizeCallback(_window, [](auto _, const auto w, const auto h) {
+		for (const auto& func : mFramebufferCallbacks) {
+			func(w, h);
+		}
+	});
+}
+
+float Context::getInitialRatio() const {
+	return _initialRatio;
+}
+
 void Context::processInputs() const {
 	for (const auto& binding : _keyBindings) {
-		if (const auto & [key, callback] = binding; glfwGetKey(_window, static_cast<int>(key)) == GLFW_PRESS) {
+		if (
+			const auto& [key, callback] = binding; 
+			glfwGetKey(_window, static_cast<int>(key)) == GLFW_PRESS
+		) {
 			callback();
 		}
 	}

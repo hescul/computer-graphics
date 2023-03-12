@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <cmath>
 #include <stb_image.h>
 
 #include <glm/glm.hpp>

@@ -1,65 +1,42 @@
-#include "Engine.h"
-#include <fstream>
-#include <iostream>
 #include <glad/glad.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <span>
+#include <exception>
 #include <memory>
 
-GLuint Engine::createShaderProgram(const std::string_view vertexShaderUri, const std::string_view fragmentShaderUri) {
-	const auto vertexShaderCode = readShaderFile(vertexShaderUri);
-	const auto vertexShaderSource = vertexShaderCode.data();
-	const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
-	glCompileShader(vertexShader);
-	validateShaderCompilation(vertexShader);
-	
-	const auto fragmentShaderCode = readShaderFile(fragmentShaderUri);
-	const auto fragmentShaderSource = fragmentShaderCode.data();
-	const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
-	glCompileShader(fragmentShader);
-	validateShaderCompilation(fragmentShader);
-	
-	const auto shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glLinkProgram(shaderProgram);
-	int success;
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if (!success) {
-		char infoLog[512];
-		glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-		std::cout << "ERROR::PROGRAM::LINKING_FAILED\n" << infoLog << '\n';
-	}
-	
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-	
-	return shaderProgram;
+#include "Engine.h"
+
+std::unique_ptr<Engine> Engine::Factory::operator()(const Context& context) const {
+	return std::unique_ptr<Engine>(new Engine{ context });
 }
 
-std::vector<char> Engine::readShaderFile(const std::string_view fileName) {
-	auto file = std::ifstream(fileName.data(), std::ios::ate);
-	if (!file.is_open()) {
-		throw std::runtime_error("failed to open file!");
-	}
-	const auto fileSize = static_cast<size_t>(file.tellg());
-	auto buffer = std::vector<char>(fileSize);
-	file.seekg(0);
-	file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
-	file.close();
-	return buffer;
+std::unique_ptr<Engine> Engine::create(const Context& context) {
+	constexpr static auto FACTORY = Factory();
+	return FACTORY(context);
 }
 
-void Engine::validateShaderCompilation(const GLuint shader) {
-	int success;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		char infoLog[512];
-		glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-		std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << '\n';
-	}
+Engine::Engine(const Context& context) {
+	glEnable(GL_DEPTH_TEST);
+
+	context.registerFramebufferCallback([](const auto w, const auto h) {
+		// make sure the viewport matches the new window dimensions
+		// width and height will be significantly larger than specified on retina displays
+		glViewport(0, 0, w, h);
+	});
 }
+
+EntityManager* Engine::getEntityManager() const {
+	return _entityManager;
+}
+
+Camera* Engine::createCamera(const Entity entity, const float initialRatio) {
+	const auto camera = new Camera(entity, initialRatio);
+	_cameras[entity] = camera;
+	return camera;
+}
+
 
 void Engine::setClearColor(const float r, const float g, const float b, const float a) {
 	_clearColor[0] = r;
@@ -68,21 +45,24 @@ void Engine::setClearColor(const float r, const float g, const float b, const fl
 	_clearColor[3] = a;
 }
 
+void Engine::setPolygonMode(const PolygonMode mode) {
+	glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(mode));
+}
+
+
 Renderable Engine::loadMesh(const Drawable& drawable) {
 	const auto vertices = drawable.vertices();
 	const auto layout = drawable.layout();
 	const auto primitives = drawable.primitives();
-	
+
 	unsigned int vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	const auto vbo = createVertexBuffer(vertices, layout);
-	const auto ibo = createIndexBuffer(primitives);
-	glBindVertexArray(0);
+	createVertexBuffer(vertices, layout);
+	createIndexBuffer(primitives);
 
-	_vertexBuffers.push_back(vbo);
-	_indexBuffers.push_back(ibo);
+	glBindVertexArray(0);
 
 	const auto renderable = static_cast<Renderable>(_meshes.size());
 	_meshes.emplace_back(vao, drawable.shader, createElements(primitives));
@@ -90,21 +70,38 @@ Renderable Engine::loadMesh(const Drawable& drawable) {
 	return renderable;
 }
 
-VertexBuffer Engine::createVertexBuffer(
+void Engine::createVertexBuffer(
 	const std::vector<float>& vertices, 
 	const std::vector<GenericAttribute>& layout
 ) {
-	// Save the underlying data of the vertices vector
-	_dataVertices.emplace_back(std::make_unique<float[]>(vertices.size()));
-	std::ranges::copy(vertices.begin(), vertices.end(), _dataVertices.back().get());
-
-	VertexBuffer vbo;
+	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(
+
+	// We transfer the data down the GPU by mean of std::mem copy.
+
+	// Create a dedicated memory region in the GPU.
+	glBufferStorage(
 		GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(float) * vertices.size()),
-		_dataVertices.back().get(), GL_STATIC_DRAW
+		nullptr, GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT
 	);
+
+	// Acquire the pointer to the newly created memory.
+	const auto vertexData = static_cast<float*>(glMapBufferRange(
+		GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(float) * vertices.size()),
+		GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
+	));
+	if (!vertexData) {
+		throw std::exception("Could not map vertex buffer.");
+	}
+
+	// Transfer the vertices data.
+	std::memcpy(vertexData, vertices.data(), sizeof(float) * vertices.size());
+
+	// Finally we notify the GPU the change.
+	glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(sizeof(float) * vertices.size()));
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+
 	auto stride = 0;
 	for (const auto [size, normalized] : layout) {
 		stride += static_cast<int>(size);
@@ -120,11 +117,13 @@ VertexBuffer Engine::createVertexBuffer(
 		glEnableVertexAttribArray(idx);
 		offset += static_cast<int>(size);
 	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	return vbo;
+
+	_vertexBuffers.push_back(vbo);
 }
 
-IndexBuffer Engine::createIndexBuffer(const std::vector<Primitive>& primitives) {
+void Engine::createIndexBuffer(const std::vector<Primitive>& primitives) {
 	std::size_t size = 0;
 	for (const auto& [_, indices] : primitives) {
 		size += indices.size();
@@ -137,18 +136,15 @@ IndexBuffer Engine::createIndexBuffer(const std::vector<Primitive>& primitives) 
 		jointIndices.insert(jointIndices.end(), span.begin(), span.end());
 	}
 
-	_dataIndices.emplace_back(std::make_unique<IndexType[]>(jointIndices.size()));
-	std::ranges::copy(jointIndices.begin(), jointIndices.end(), _dataIndices.back().get());
-
-	IndexBuffer ibo;
+	GLuint ibo;
 	glGenBuffers(1, &ibo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 	glBufferData(
 		GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeof(IndexType) * jointIndices.size()),
-		_dataIndices.back().get(), GL_STATIC_DRAW
+		jointIndices.data(), GL_STATIC_DRAW
 	);
 
-	return ibo;
+	_indexBuffers.push_back(ibo);
 }
 
 std::vector<Element> Engine::createElements(const std::vector<Primitive>& primitives) {
@@ -164,12 +160,38 @@ std::vector<Element> Engine::createElements(const std::vector<Primitive>& primit
 }
 
 
-void Engine::render(const Renderable renderable) const {
+void Engine::render(const Renderable renderable, const Camera& camera) const {
 	glClearColor(_clearColor[0], _clearColor[1], _clearColor[2], _clearColor[3]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	const auto model = glm::mat4(1.0f);
+	const auto view = camera.getViewMatrix();
+	const auto projection = camera.getProjection();
+
 	if (renderable < _meshes.size()) {
-		glUseProgram(_meshes[renderable].shader);
+		// Specify which program to use first
+		const auto program = _meshes[renderable].shader;
+		glUseProgram(program);
+
+		// Set the model matrix
+		glUniformMatrix4fv(
+			glGetUniformLocation(program, "model"),
+			1, GL_FALSE, value_ptr(model)
+		);
+
+		// Set the view matrix
+		glUniformMatrix4fv(
+			glGetUniformLocation(program, "view"),
+			1, GL_FALSE, value_ptr(view)
+		);
+
+		// Set the projection matrix
+		glUniformMatrix4fv(
+			glGetUniformLocation(program, "projection"), 
+			1, GL_FALSE, value_ptr(projection)
+		);
+
+		// VAO will be linked to the currently used program
 		glBindVertexArray(_meshes[renderable].vao);
 		
 		for (const auto& element : _meshes[renderable].elements) {
@@ -184,19 +206,33 @@ void Engine::render(const Renderable renderable) const {
 	}
 }
 
+void Engine::destroyCamera(const Entity entity) {
+	_cameras.erase(entity);
+}
+
 void Engine::destroy() {
 	for (const auto& [vao, shader, elements] : _meshes) {
 		glDeleteVertexArrays(1, &vao);
 		glDeleteProgram(shader);
 	}
 
+	// destroy remaining vertex buffers
 	for (const auto buffer : _vertexBuffers) {
 		glDeleteBuffers(1, &buffer);
 	}
 
+	// destroy remaining index buffers
 	for (const auto buffer : _indexBuffers) {
 		glDeleteBuffers(1, &buffer);
 	}
+
+	// destroy remaining camera resources
+	for (auto [_, ptr] : _cameras) {
+		delete ptr;
+	}
+
+	// destroy entity manager
+	delete _entityManager;
 }
 
 

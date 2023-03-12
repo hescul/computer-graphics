@@ -1,7 +1,9 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <vector>
-#include "drawable/Vertex.h"
+
+#include "Vertex.h"
 
 using IndexType = unsigned int;
 
@@ -32,9 +34,9 @@ public:
 	[[nodiscard]] std::vector<GenericAttribute> layout() const override;
 
 private:
-	static constexpr auto VERT_SHADER_PATH = "shaders/shader.vert";
+	static constexpr auto VERT_SHADER_PATH = "shaders/baked.vert";
 
-	static constexpr auto FRAG_SHADER_PATH = "shaders/shader.frag";
+	static constexpr auto FRAG_SHADER_PATH = "shaders/baked.frag";
 
 	static [[nodiscard]] GLuint loadBakedColorShader();
 };

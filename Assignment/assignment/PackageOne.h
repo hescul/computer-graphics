@@ -1,7 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "Drawable.h"
+
+#include "../drawable/Drawable.h"
 
 
 class Triangle final : public BakedColorDrawable {
@@ -131,4 +132,34 @@ private:
 	static constexpr auto SEGMENTS = 50;
 
 	static constexpr auto DIVISIONS = 20;
+};
+
+class Cylinder final : public BakedColorDrawable {
+public:
+	Cylinder(
+		const glm::vec3& center, 
+		const float radius, 
+		const float height
+	) : _center{ center }, _radius{ radius }, _height{ height } {
+		if (radius <= 0.0f) {
+			throw std::exception{ "The radius of the cylinder is not positive\n" };
+		}
+
+		if (height <= 0.0f) {
+			throw std::exception{ "The height of the cylinder is not positive\n" };
+		}
+	}
+
+	[[nodiscard]] std::vector<float> vertices() const override;
+
+	[[nodiscard]] std::vector<Primitive> primitives() const override;
+
+private:
+	const glm::vec3 _center;
+
+	const float _radius;
+
+	const float _height;
+
+	static constexpr auto SEGMENTS = 100;
 };
