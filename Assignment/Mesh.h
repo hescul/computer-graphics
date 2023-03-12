@@ -6,10 +6,11 @@ struct Element {
 	const int topology;
 	const std::size_t count;
 	const int offset;
+	const GLuint texture;
 };
 
 struct Mesh {
-	const unsigned int vao;
+	const GLuint vao;
 	const GLuint shader;
 	const std::vector<Element> elements;
 };

@@ -40,3 +40,17 @@ private:
 
 	static [[nodiscard]] GLuint loadBakedColorShader();
 };
+
+class TexturedDrawable : public Drawable {
+public:
+	TexturedDrawable() : Drawable(loadShader()) {}
+
+	[[nodiscard]] std::vector<GenericAttribute> layout() const override;
+
+private:
+	static constexpr auto VERT_SHADER_PATH = "shaders/textured.vert";
+
+	static constexpr auto FRAG_SHADER_PATH = "shaders/textured.frag";
+
+	static [[nodiscard]] GLuint loadShader();
+};

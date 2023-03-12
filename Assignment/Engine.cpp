@@ -19,6 +19,7 @@ std::unique_ptr<Engine> Engine::create(const Context& context) {
 
 Engine::Engine(const Context& context) {
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
 
 	context.registerFramebufferCallback([](const auto w, const auto h) {
 		// make sure the viewport matches the new window dimensions
@@ -164,6 +165,7 @@ void Engine::render(const Renderable renderable, const Camera& camera) const {
 	glClearColor(_clearColor[0], _clearColor[1], _clearColor[2], _clearColor[3]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	// Compute MVP matrices
 	const auto model = glm::mat4(1.0f);
 	const auto view = camera.getViewMatrix();
 	const auto projection = camera.getProjection();
@@ -194,8 +196,13 @@ void Engine::render(const Renderable renderable, const Camera& camera) const {
 		// VAO will be linked to the currently used program
 		glBindVertexArray(_meshes[renderable].vao);
 		
-		for (const auto& element : _meshes[renderable].elements) {
-			const auto [topology, count, offset] = element;
+		for (unsigned int i = 0; i < _meshes[renderable].elements.size(); ++i) {
+			const auto [topology, count, offset, texture] = _meshes[renderable].elements[i];
+
+			// Bind the texture before the draw call
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, texture);
+
 			glDrawElements(
 				topology, static_cast<GLsizei>(count), GL_UNSIGNED_INT,
 				reinterpret_cast<void*>(offset * sizeof(GLuint)) // NOLINT(performance-no-int-to-ptr)

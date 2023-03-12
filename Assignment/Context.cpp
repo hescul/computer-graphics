@@ -36,6 +36,7 @@ Context::Context(const std::string_view name, const int width, const int height)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, VERSION_MINOR);
 	// access to smaller subset of OpenGL without backward-compatible features
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 #ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif

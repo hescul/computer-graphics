@@ -112,9 +112,9 @@ private:
 	static constexpr auto SEGMENTS = 100;
 };
 
-class Sphere final : public BakedColorDrawable {
+class StripSphere final : public BakedColorDrawable {
 public:
-	Sphere(const glm::vec3& center, const float radius) : _center{ center }, _radius{ radius } {
+	StripSphere(const glm::vec3& center, const float radius) : _center{ center }, _radius{ radius } {
 		if (radius <= 0.0f) {
 			throw std::exception{ "The radius of the sphere is not positive\n" };
 		}

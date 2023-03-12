@@ -131,10 +131,10 @@ std::vector<Primitive> Cone::primitives() const {
 	};
 }
 
-std::vector<float> Sphere::vertices() const {
+std::vector<float> StripSphere::vertices() const {
 	auto vertices = std::vector<float>{};
 
-	const auto top = _center + glm::vec3{ 0.0f, 1.0f, 0.0f } *_radius;
+	const auto top = _center + glm::vec3{ 0.0f, 0.0f, 1.0f } *_radius;
 	vertices.push_back(top.x);
 	vertices.push_back(top.y);
 	vertices.push_back(top.z);
@@ -142,13 +142,13 @@ std::vector<float> Sphere::vertices() const {
 	vertices.push_back(srgb::YELLOW[1]);
 	vertices.push_back(srgb::YELLOW[2]);
 
-	const auto bot = _center + glm::vec3{ 0.0f, -1.0f, 0.0f } *_radius;
+	const auto bot = _center + glm::vec3{ 0.0f, 0.0f, -1.0f } *_radius;
 	vertices.push_back(bot.x);
 	vertices.push_back(bot.y);
 	vertices.push_back(bot.z);
-	vertices.push_back(srgb::RED[0]);
-	vertices.push_back(srgb::RED[1]);
-	vertices.push_back(srgb::RED[2]);
+	vertices.push_back(srgb::YELLOW[0]);
+	vertices.push_back(srgb::YELLOW[1]);
+	vertices.push_back(srgb::YELLOW[2]);
 
 	for (auto i = 1; i < DIVISIONS; ++i) {
 		const auto theta = static_cast<float>(i) * std::numbers::pi_v<float> / DIVISIONS;
@@ -156,8 +156,8 @@ std::vector<float> Sphere::vertices() const {
 			const auto phi = static_cast<float>(j) * 2.0f * std::numbers::pi_v<float> / SEGMENTS;
 
 			const auto diX = std::sin(theta) * std::cos(phi);
-			const auto diY = std::cos(theta);
-			const auto diZ = std::sin(theta) * std::sin(phi);
+			const auto diY = std::sin(theta) * std::sin(phi);
+			const auto diZ = std::cos(theta);
 
 			const auto dir = normalize(glm::vec3{ diX, diY, diZ });
 			const auto point = _center + dir * _radius;
@@ -165,16 +165,16 @@ std::vector<float> Sphere::vertices() const {
 			vertices.push_back(point.x);
 			vertices.push_back(point.y);
 			vertices.push_back(point.z);
-			vertices.push_back(srgb::MAGENTA[0]);
-			vertices.push_back(srgb::MAGENTA[1]);
-			vertices.push_back(srgb::MAGENTA[2]);
+			vertices.push_back(srgb::CYAN[0]);
+			vertices.push_back(srgb::CYAN[1]);
+			vertices.push_back(srgb::CYAN[2]);
 		}
 	}
 
 	return vertices;
 }
 
-std::vector<Primitive> Sphere::primitives() const {
+std::vector<Primitive> StripSphere::primitives() const {
 	auto primitives = std::vector<Primitive>{};
 
 	for (auto i = 0; i < DIVISIONS - 2; ++i) {
