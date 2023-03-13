@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <utility>
+
 #include <glm/glm.hpp>
 
 #include "../drawable/Drawable.h"
@@ -28,10 +31,10 @@ private:
 class BakedTetrahedron final : public BakedColorDrawable {
 public:
 	explicit BakedTetrahedron(
-		const glm::vec3& p0 = glm::vec3{ -0.5f,  0.0f, 0.0f }, 
-		const glm::vec3& p1 = glm::vec3{  0.0f, -0.5f, 0.5f }, 
-		const glm::vec3& p2 = glm::vec3{  0.5f,  0.0f, 0.0f },
-		const glm::vec3& p3 = glm::vec3{ -0.5f,  0.8f, 0.0f }
+		const glm::vec3& p0 = glm::vec3{ -1.0f,  0.0f, 0.0f }, 
+		const glm::vec3& p1 = glm::vec3{  0.0f, -1.0f, 0.0f }, 
+		const glm::vec3& p2 = glm::vec3{  0.0f,  0.5f, 0.0f },
+		const glm::vec3& p3 = glm::vec3{ -1.0f,  0.0f, 1.0f }
 	) : _p0{ p0 }, _p1{ p1 }, _p2{ p2 }, _p3{ p3 } {}
 
 	[[nodiscard]] std::vector<float> vertices() const override;
@@ -143,7 +146,7 @@ public:
 		const glm::vec3& center = glm::vec3{ 0.0f, 0.0f, -2.0f },
 		const float radius = 2.0f,
 		const float height = 4.0f,
-		const glm::vec3 up = glm::vec3{ 0.0f, 0.0f, 1.0f }
+		const glm::vec3& up = glm::vec3{ 0.0f, 0.0f, 1.0f }
 	) : _center{ center }, _radius{ radius }, _height{ height }, _up{ normalize(up) } {
 		if (radius <= 0.0f) {
 			throw std::exception{ "The radius of the cylinder is not positive\n" };
@@ -168,4 +171,103 @@ private:
 	const glm::vec3 _up;
 
 	static constexpr auto SEGMENTS = 100;
+};
+
+class BakedPyramid final : public BakedColorDrawable {
+public:
+	explicit BakedPyramid(
+		const glm::vec3& baseCenter = glm::vec3{ 0.0f, 0.0f, -1.0f },
+		const glm::vec3& upDir = glm::vec3{ 0.0f, 0.0f, 1.0f },
+		const glm::vec3& sideDir = glm::vec3{ 1.0f, 0.0f, 0.0f },
+		const float baseLength = 1.0f,
+		const float height = 2.0f
+	) : _baseCenter{ baseCenter }, _up{ upDir }, _side{ sideDir }, _baseLength{ baseLength }, _height{ height } {}
+
+	[[nodiscard]] std::vector<float> vertices() const override;
+
+	[[nodiscard]] std::vector<Primitive> primitives() const override;
+
+private:
+	const glm::vec3 _baseCenter;
+
+	const glm::vec3 _up;
+
+	const glm::vec3 _side;
+
+	const float _baseLength;
+
+	const float _height;
+};
+
+class BakedMesh final : public BakedColorDrawable {
+public:
+	[[nodiscard]] std::vector<float> vertices() const override;
+
+	[[nodiscard]] std::vector<Primitive> primitives() const override;
+
+	class Builder {
+	public:
+		explicit Builder(std::function<float(float, float)> func) : _func{ std::move(func) } {}
+
+		Builder& halfExtentX(const float extent) {
+			_halfExtentX = extent;
+			return *this;
+		}
+
+		Builder& halfExtentY(const float extent) {
+			_halfExtentY = extent;
+			return *this;
+		}
+
+		Builder& halfExtent(const float extent) {
+			return halfExtentX(extent).halfExtentY(extent);
+		}
+
+		Builder& segmentsX(const int segments) {
+			_segmentsX = segments;
+			return *this;
+		}
+
+		Builder& segmentsY(const int segments) {
+			_segmentsY = segments;
+			return *this;
+		}
+
+		Builder& segments(const int segments) {
+			return segmentsX(segments).segmentsY(segments);
+		}
+
+		[[nodiscard]] BakedMesh build() const {
+			return BakedMesh(_func, _halfExtentX, _halfExtentY, _segmentsX, _segmentsY);
+		}
+
+	private:
+		const std::function<float(float, float)> _func;
+		float _halfExtentX{ HALF_EXTENT_X };
+		float _halfExtentY{ HALF_EXTENT_Y };
+		int _segmentsX{ SEGMENTS_X };
+		int _segmentsY{ SEGMENTS_Y };
+
+		static constexpr auto HALF_EXTENT_X = 10.0f;
+		static constexpr auto HALF_EXTENT_Y = 10.0f;
+		static constexpr auto SEGMENTS_X = 100;
+		static constexpr auto SEGMENTS_Y = 100;
+	};
+
+private:
+	explicit BakedMesh(
+		std::function<float(float, float)> func,
+		const float halfExtentX, 
+		const float halfExtentY,
+		const int segmentsX, 
+		const int segmentsY
+	) : _func{ std::move(func) }, _halfExtentX{ halfExtentX }, _halfExtentY{ halfExtentY },
+	_segmentsX{ segmentsX }, _segmentsY{ segmentsY } {}
+
+	const std::function<float(float, float)> _func;
+
+	const float _halfExtentX;
+	const float _halfExtentY;
+	const int _segmentsX;
+	const int _segmentsY;
 };

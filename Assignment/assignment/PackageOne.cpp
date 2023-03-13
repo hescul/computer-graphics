@@ -32,7 +32,7 @@ std::vector<float> BakedTetrahedron::vertices() const {
 
 std::vector<Primitive> BakedTetrahedron::primitives() const {
 	return std::vector{
-		Primitive{ GL_TRIANGLE_STRIP, std::vector{ 0u, 2u, 1u, 3u, 0u } }
+		Primitive{ GL_TRIANGLE_STRIP, std::vector{ 0u, 2u, 1u, 3u, 0u, 2u } }
 	};
 }
 
@@ -270,3 +270,83 @@ std::vector<Primitive> BakedCylinder::primitives() const {
 
 	return primitives;
 }
+
+std::vector<float> BakedPyramid::vertices() const {
+	const auto baseRadius = _baseLength / static_cast<float>(std::sqrt(2));
+
+	// base square
+	const auto p0 = _baseCenter + _side * baseRadius;
+	const auto p1 = _baseCenter + normalize(cross(_up, _side)) * baseRadius;
+	const auto p2 = _baseCenter + -_side * baseRadius;
+	const auto p3 = _baseCenter + normalize(cross(_side, _up)) * baseRadius;
+
+	// top
+	const auto p4 = _baseCenter + _up * _height;
+
+	return std::vector{
+		// position			// color
+		p0.x, p0.y, p0.z,	srgb::RED[0],		srgb::RED[1],		srgb::RED[2],
+		p1.x, p1.y, p1.z,	srgb::BLUE[0],		srgb::BLUE[1],		srgb::BLUE[2],
+		p2.x, p2.y, p2.z,	srgb::GREEN[0],		srgb::GREEN[1],		srgb::GREEN[2],
+		p3.x, p3.y, p3.z,	srgb::YELLOW[0],	srgb::YELLOW[1],	srgb::YELLOW[2],
+		p4.x, p4.y, p4.z,	srgb::MAGENTA[0],	srgb::MAGENTA[1],	srgb::MAGENTA[2],
+	};
+}
+
+std::vector<Primitive> BakedPyramid::primitives() const {
+	return std::vector{
+		Primitive{ GL_TRIANGLE_STRIP, std::vector{ 0u, 3u, 1u, 2u } },
+		Primitive{ GL_TRIANGLE_FAN, std::vector{ 4u, 0u, 1u, 2u, 3u, 0u }  }
+	};
+}
+
+std::vector<float> BakedMesh::vertices() const {
+	auto vertices = std::vector<float>{};
+
+	const auto xStep = _halfExtentX * 2 / static_cast<float>(_segmentsX);
+	const auto yStep = _halfExtentY * 2 / static_cast<float>(_segmentsY);
+
+	for (auto i = 0; i < _segmentsX + 1; ++i) {
+		for (auto j = 0; j < _segmentsY + 1; ++j) {
+			// acquire the x, y coordinate
+			const auto x = static_cast<float>(i) * xStep - _halfExtentX;	// from top left
+			const auto y = _halfExtentY - static_cast<float>(j) * yStep;	// to bottom right
+			// evaluate z
+			const auto z = _func(x, y);
+			vertices.push_back(x);
+			vertices.push_back(y);
+			vertices.push_back(z);
+			vertices.push_back(srgb::YELLOW[0]);
+			vertices.push_back(srgb::YELLOW[1]);
+			vertices.push_back(srgb::YELLOW[2]);
+		}
+	}
+
+	return vertices;
+}
+
+std::vector<Primitive> BakedMesh::primitives() const {
+	auto primitives = std::vector<Primitive>{};
+
+	// for each x-wide strip starting at the most y 
+	for (auto i = 0; i < _segmentsY; ++i) {
+		// connection to the previous strip
+		// if (i > 0) {
+		//	   indices.push_back(i * (_segmentsX + 1));
+		// }
+		auto indices = std::vector<IndexType>{};
+		// for each column pair of vertices starting at the least x
+		for (auto j = 0; j < _segmentsX + 1; ++j) {
+			indices.push_back(j + i * (_segmentsX + 1));
+			indices.push_back(j + (i + 1) * (_segmentsX + 1));
+		}
+		// connection to the next strip
+		// if (i < _segmentsY) {
+		//	   indices.push_back(_segmentsX + (i + 1) * (_segmentsX + 1));
+		// }
+		primitives.emplace_back(GL_TRIANGLE_STRIP, indices);
+	}
+	return primitives;
+}
+
+

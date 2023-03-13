@@ -34,8 +34,14 @@ int main() {
 	const auto bakedCone = BakedCone();
 	const auto bakedStripSphere = BakedStripSphere();
 	const auto bakedCylinder = BakedCylinder();
+	const auto bakedPyramid = BakedPyramid();
+	const auto bakedMesh = BakedMesh::Builder([](auto x, auto y) { return std::sin(x) + std::cos(y); })
+		.halfExtentX(5.0f)
+		.halfExtentY(5.0f)
+		.segments(100)
+		.build();
 
-	const auto renderable = engine->loadMesh(bakedCylinder);
+	const auto renderable = engine->loadMesh(bakedMesh);
 
 	context->loop([&] { engine->render(renderable, *camera); });
 
