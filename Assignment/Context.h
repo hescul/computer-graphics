@@ -16,7 +16,7 @@ public:
 	Context& operator=(Context&&) noexcept = delete;
 
 	enum class Key {
-		ESCAPE = GLFW_KEY_ESCAPE,
+		ESC = GLFW_KEY_ESCAPE,
 		F = GLFW_KEY_F,
 		T = GLFW_KEY_T,
 		W = GLFW_KEY_W

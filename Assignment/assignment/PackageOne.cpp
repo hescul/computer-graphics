@@ -5,7 +5,7 @@
 #include "../drawable/Drawable.h"
 #include "../drawable/Color.h"
 
-std::vector<float> Triangle::vertices() const {
+std::vector<float> BakedTriangle::vertices() const {
 	return std::vector{
 		// position				// color
 		_p0.x, _p0.y, _p0.z,	srgb::RED[0],	srgb::RED[1],	srgb::RED[2],
@@ -14,13 +14,13 @@ std::vector<float> Triangle::vertices() const {
 	};
 }
 
-std::vector<Primitive> Triangle::primitives() const {
+std::vector<Primitive> BakedTriangle::primitives() const {
 	return std::vector{
 		Primitive{ GL_TRIANGLES, std::vector{ 0u, 1u, 2u } }
 	};
 }
 
-std::vector<float> Tetrahedron::vertices() const {
+std::vector<float> BakedTetrahedron::vertices() const {
 	return std::vector{
 		// position				// color
 		_p0.x, _p0.y, _p0.z,	srgb::RED[0],	srgb::RED[1],	srgb::RED[2],
@@ -30,13 +30,13 @@ std::vector<float> Tetrahedron::vertices() const {
 	};
 }
 
-std::vector<Primitive> Tetrahedron::primitives() const {
+std::vector<Primitive> BakedTetrahedron::primitives() const {
 	return std::vector{
 		Primitive{ GL_TRIANGLE_STRIP, std::vector{ 0u, 2u, 1u, 3u, 0u } }
 	};
 }
 
-std::vector<float> Cube::vertices() const {
+std::vector<float> BakedCube::vertices() const {
 	const auto baseCenter = _center + -_upDir * _sideLength / 2.0f;
 	const auto baseRadius = _sideLength / static_cast<float>(std::sqrt(2));
 
@@ -63,7 +63,7 @@ std::vector<float> Cube::vertices() const {
 	};
 }
 
-std::vector<Primitive> Cube::primitives() const {
+std::vector<Primitive> BakedCube::primitives() const {
 	return std::vector{
 		Primitive{GL_TRIANGLE_STRIP, std::vector{
 			4u, 0u, 5u, 1u, 6u, 2u, 7u, 3u, 4u, 0u,		// sides
@@ -81,10 +81,11 @@ std::vector<Primitive> Cube::primitives() const {
 	};
 }
 
-std::vector<float> Cone::vertices() const {
+std::vector<float> BakedCone::vertices() const {
 	auto vertices = std::vector{
 		// base center
-		_center.x, _center.y, _center.z, srgb::CYAN[0], srgb::CYAN[1], srgb::CYAN[2]
+		_center.x, _center.y, _center.z,
+		srgb::CYAN[0], srgb::CYAN[1], srgb::CYAN[2]
 	};
 
 	// Base circle
@@ -112,7 +113,7 @@ std::vector<float> Cone::vertices() const {
 	return vertices;
 }
 
-std::vector<Primitive> Cone::primitives() const {
+std::vector<Primitive> BakedCone::primitives() const {
 	auto circleIndices = std::vector{ 0u };
 	for (auto i = 0; i < SEGMENTS; ++i) {
 		circleIndices.push_back(static_cast<IndexType>(i + 1));
@@ -131,7 +132,7 @@ std::vector<Primitive> Cone::primitives() const {
 	};
 }
 
-std::vector<float> StripSphere::vertices() const {
+std::vector<float> BakedStripSphere::vertices() const {
 	auto vertices = std::vector<float>{};
 
 	const auto top = _center + glm::vec3{ 0.0f, 0.0f, 1.0f } *_radius;
@@ -174,7 +175,7 @@ std::vector<float> StripSphere::vertices() const {
 	return vertices;
 }
 
-std::vector<Primitive> StripSphere::primitives() const {
+std::vector<Primitive> BakedStripSphere::primitives() const {
 	auto primitives = std::vector<Primitive>{};
 
 	for (auto i = 0; i < DIVISIONS - 2; ++i) {
@@ -207,19 +208,65 @@ std::vector<Primitive> StripSphere::primitives() const {
 	return primitives;
 }
 
-std::vector<float> Cylinder::vertices() const {
+std::vector<float> BakedCylinder::vertices() const {
 	auto vertices = std::vector<float>{};
 
-	// base circle
-	for (auto i = 0; i < SEGMENTS; ++i) {
-		
+	for (auto i = 0; i < 2; ++i) {
+		// the actual center
+		const auto center = _center + _up * (_height * static_cast<float>(i));
+
+		// center vertex
+		vertices.push_back(center.x);
+		vertices.push_back(center.y);
+		vertices.push_back(center.z);
+		vertices.push_back(srgb::BLUE[0]);
+		vertices.push_back(srgb::BLUE[1]);
+		vertices.push_back(srgb::BLUE[2]);
+		// circular vertices
+		for (auto j = 0; j < SEGMENTS; ++j) {
+			// the angle of rotation
+			const auto angle = static_cast<float>(j) * 2.0f * std::numbers::pi_v<float> / SEGMENTS;
+			// rotation vector on the XY-plane
+			const auto rot = glm::vec3{ std::cos(angle), std::sin(angle), 0.0f };
+			// the direction to the point on circle
+			const auto dir = normalize(cross(_up, rot));
+			// translate to that point
+			const auto point = center + dir * _radius;
+			vertices.push_back(point.x);
+			vertices.push_back(point.y);
+			vertices.push_back(point.z);
+			vertices.push_back(srgb::CYAN[0]);
+			vertices.push_back(srgb::CYAN[1]);
+			vertices.push_back(srgb::CYAN[2]);
+		}
 	}
 
 	return vertices;
 }
 
-std::vector<Primitive> Cylinder::primitives() const {
-	return std::vector{
-		Primitive{ GL_TRIANGLE_STRIP, std::vector{ 0u, 2u, 1u, 3u, 0u } }
-	};
+std::vector<Primitive> BakedCylinder::primitives() const {
+	auto primitives = std::vector<Primitive>{};
+
+	// the top and the bot triangle fans
+	for (auto i = 0; i < 2; ++i) {
+		auto baseIndices = std::vector{ static_cast<IndexType>(i * (SEGMENTS + 1)) };
+		for (auto j = 0; j < SEGMENTS; ++j) {
+			baseIndices.push_back(static_cast<IndexType>(j + 1 + i * (SEGMENTS + 1)));
+		}
+		baseIndices.push_back(1u + static_cast<IndexType>(i * (SEGMENTS + 1)));
+
+		primitives.emplace_back(GL_TRIANGLE_FAN, baseIndices);
+	}
+
+	// the side triangle strip
+	auto sideIndices = std::vector<IndexType>{};
+	for (auto i = 0; i < SEGMENTS; ++i) {
+		sideIndices.push_back(static_cast<IndexType>(i + 2 + SEGMENTS));
+		sideIndices.push_back(static_cast<IndexType>(i + 1));
+	}
+	sideIndices.push_back(static_cast<IndexType>(2 + SEGMENTS));
+	sideIndices.push_back(1u);
+	primitives.emplace_back(GL_TRIANGLE_STRIP, sideIndices);
+
+	return primitives;
 }

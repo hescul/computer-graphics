@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Camera.h"
@@ -12,7 +10,7 @@ void Camera::relativeDrag(const float offsetX, const float offsetY) {
 
 void Camera::relativeZoom(const float amount) {
 	_radius -= amount * ZOOM_SENSITIVE;
-	_radius = std::clamp(_radius, MIN_RADIUS, MAX_RADIUS);
+	_radius = glm::clamp(_radius, MIN_RADIUS, MAX_RADIUS);
 }
 
 void Camera::setProjection(const float fov, const float ratio, const float near, const float far) {
